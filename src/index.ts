@@ -105,7 +105,7 @@ export default {
 
 			// 返回处理后的响应
 			return new Response(JSON.stringify({
-				response: data.choices[0].message.content
+				response: data.choices[0]?.message?.content || 'No response'
 			}), {
 				headers: {
 					'Content-Type': 'application/json',
