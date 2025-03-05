@@ -1,0 +1,19 @@
+{
+  "name": "aiworkers",
+  "version": "1.0.0",
+  "description": "aiworkers",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250303.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7",
+    "wrangler": "^3.112.0"
+  }
+}

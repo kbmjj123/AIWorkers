@@ -1,6 +1,8 @@
-name = "AIWorker"
-compatibility_date = "2025-03-04"
+name = "aiworkers"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
 
 [vars]
-# DEEPSEEK_KEY 在部署时通过 Cloudflare 仪表板设置
-DEEPSEEK_KEY = "placeholder"
+# DEEPSEEK_API_KEY 在部署时通过 Cloudflare 仪表板设置
+DEEPSEEK_API_KEY = ""
+# 这里可以添加其他环境变量
