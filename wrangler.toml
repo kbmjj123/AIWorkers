@@ -1,0 +1,6 @@
+name = "AIWorker"
+compatibility_date = "2025-03-04"
+
+[vars]
+# API_KEY 在部署时通过 Cloudflare 仪表板设置
+API_KEY = "placeholder"
