@@ -158,6 +158,163 @@ export default {
 1. 确保已创建 `.dev.vars` 文件并设置了正确的 API Key：
 ```plaintext:.dev.vars
 DEEPSEEK_API_KEY=your_api_key_here
+```
+
+2. 使用 wrangler 启动本地开发服务器：
+```bash
+wrangler dev src/index.ts
+```
+
+wrangler 会自动读取 `.dev.vars` 文件中的环境变量，使其在本地开发环境中可用。
+
+这样的设置可以：
+- 确保本地开发和生产环境的一致性
+- 提供更友好的错误提示
+- 保护敏感信息安全
+- 简化开发调试流程
+
+---
+
+_**User**_
+
+为防止接口被刷，我需要控制这个接口仅支持白名单下的域名来调用
+
+---
+
+_**Assistant**_
+
+
+
+```思路分析
+[!code-start]
+# 域名白名单控制方案
+1. 配置白名单列表
+2. CORS 请求控制
+3. Origin 验证逻辑
+4. 错误处理完善
+[!code-end]
+```
+
+首先需要在 wrangler.toml 中添加白名单配置：
+
+```toml:wrangler.toml
+name = "aiworkers"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+DEEPSEEK_API_KEY = ""
+# 添加允许的域名白名单，使用逗号分隔
+ALLOWED_ORIGINS = "http://localhost:3000,https://yourdomain.com"
+```
+
+然后修改 index.ts 添加域名验证逻辑：
+
+```typescript:src/index.ts
+export interface Env {
+	DEEPSEEK_API_KEY: string;
+	ALLOWED_ORIGINS: string; // 添加白名单环境变量
+}
+
+// ... existing code ...
+
+export default {
+	async fetch(
+		request: Request,
+		env: Env,
+		ctx: ExecutionContext
+	): Promise<Response> {
+		// 获取请求来源
+		const origin = request.headers.get('Origin') || '';
+		const allowedOrigins = env.ALLOWED_ORIGINS?.split(',') || [];
+		
+		// 验证来源是否在白名单中
+		if (!allowedOrigins.includes(origin)) {
+			return new Response('Forbidden: Origin not allowed', {
+				status: 403,
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+		}
+
+		// 处理 CORS 预检请求
+		if (request.method === 'OPTIONS') {
+			return new Response(null, {
+				headers: {
+					'Access-Control-Allow-Origin': origin, // 替换为具体的允许域名
+					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+					'Access-Control-Max-Age': '86400',
+				},
+			});
+		}
+
+		try {
+			// 验证 API Key 是否存在
+			if (!env.DEEPSEEK_API_KEY) {
+				throw new Error(
+					'DEEPSEEK_API_KEY not found. ' +
+					'Please set it in .dev.vars for local development ' +
+					'or in Cloudflare Dashboard for production.'
+				);
+			}
+
+			// ... existing code ...
+
+			// 修改所有 Response 的 CORS 头
+			return new Response(JSON.stringify({
+				response: data.choices[0]?.message?.content || 'No response'
+			}), {
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': origin, // 替换为具体的允许域名
+					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				},
+			});
+
+		} catch (error) {
+			console.error('Error:', error);
+			return new Response(JSON.stringify({
+				error: error instanceof Error ? error.message : 'Internal Server Error',
+				tip: '如果是本地开发，请确保在 .dev.vars 文件中设置了 DEEPSEEK_API_KEY'
+			}), {
+				status: 500,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': origin, // 替换为具体的允许域名
+					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				},
+			});
+		}
+	},
+};
+```
+
+同时在 .dev.vars 中也需要添加本地开发的白名单配置：
+
+```plaintext:.dev.vars
+DEEPSEEK_API_KEY=your_api_key_here
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+主要更新内容：
+
+1. 添加了白名单环境变量定义
+2. 增加了域名验证逻辑
+3. 将通配符 '*' 替换为具体的允许域名
+4. 优化了 CORS 响应头设置
+
+这样的设置可以：
+- 限制只有白名单内的域名可以访问接口
+- 提供更安全的 CORS 配置
+- 灵活配置不同环境的允许域名
+- 保持开发环境的便利性
+
+注意事项：
+1. 确保生产环境在 Cloudflare Dashboard 中正
 
 ---
 

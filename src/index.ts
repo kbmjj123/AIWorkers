@@ -21,6 +21,7 @@ export interface Env {
 	// Example binding to a Service. Learn more at https://developers.cloudflare.com/workers/runtime-apis/service-bindings/
 	// MY_SERVICE: Fetcher;
 	DEEPSEEK_API_KEY: string;
+	ALLOWED_ORIGINS: string;
 }
 
 interface ChatMessage {
@@ -42,11 +43,25 @@ export default {
 		env: Env,
 		ctx: ExecutionContext
 	): Promise<Response> {
+		// 获取请求来源
+		const origin = request.headers.get('Origin') || '';
+		const allowedOrigins = env.ALLOWED_ORIGINS?.split(',') || [];
+		
+		// 验证来源是否在白名单中
+		if (!allowedOrigins.includes(origin)) {
+			return new Response('Forbidden: Origin not allowed', {
+				status: 403,
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+		}
+
 		// 处理 CORS 预检请求
 		if (request.method === 'OPTIONS') {
 			return new Response(null, {
 				headers: {
-					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Origin': origin,
 					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 					'Access-Control-Max-Age': '86400',
@@ -118,14 +133,14 @@ export default {
 			}), {
 				headers: {
 					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Origin': origin,
 					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 				},
 			});
 
 		} catch (error) {
-			console.error('Error:', error); // 添加错误日志
+			console.error('Error:', error);
 			return new Response(JSON.stringify({
 				error: error instanceof Error ? error.message : 'Internal Server Error',
 				tip: '如果是本地开发，请确保在 .dev.vars 文件中设置了 DEEPSEEK_API_KEY'
@@ -133,7 +148,7 @@ export default {
 				status: 500,
 				headers: {
 					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Origin': origin,
 					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 				},
