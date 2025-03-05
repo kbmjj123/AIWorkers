@@ -74,6 +74,93 @@ DEEPSEEK_API_KEY=your_local_dev_key_here
 
 ---
 
+_**User**_
+
+@index.ts 那么在开发调试阶段，是否要让代码去读取？
+
+---
+
+_**Assistant**_
+
+是的，为了让本地开发调试顺利进行，我们需要调整代码来适配本地开发环境。
+
+```思路分析
+[!code-start]
+# 开发环境适配方案
+1. 环境判断
+2. 环境变量读取逻辑
+3. 错误处理优化
+[!code-end]
+```
+
+建议对 index.ts 做如下修改：
+
+```typescript:src/index.ts
+// ... existing code ...
+
+export default {
+	async fetch(
+		request: Request,
+		env: Env,
+		ctx: ExecutionContext
+	): Promise<Response> {
+		// 处理 CORS 预检请求
+		if (request.method === 'OPTIONS') {
+			return new Response(null, {
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+					'Access-Control-Max-Age': '86400',
+				},
+			});
+		}
+
+		try {
+			// 验证 API Key 是否存在
+			if (!env.DEEPSEEK_API_KEY) {
+				throw new Error(
+					'DEEPSEEK_API_KEY not found. ' +
+					'Please set it in .dev.vars for local development ' +
+					'or in Cloudflare Dashboard for production.'
+				);
+			}
+
+			// ... existing code ...
+
+		} catch (error) {
+			console.error('Error:', error); // 添加错误日志
+			return new Response(JSON.stringify({
+				error: error instanceof Error ? error.message : 'Internal Server Error',
+				tip: '如果是本地开发，请确保在 .dev.vars 文件中设置了 DEEPSEEK_API_KEY'
+			}), {
+				status: 500,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				},
+			});
+		}
+	},
+};
+```
+
+主要更新：
+
+1. 添加了 API Key 存在性检查
+2. 优化了错误提示信息，包含本地开发提示
+3. 添加了错误日志输出
+
+本地开发时的工作流程：
+
+1. 确保已创建 `.dev.vars` 文件并设置了正确的 API Key：
+```plaintext:.dev.vars
+DEEPSEEK_API_KEY=your_api_key_here
+
+---
+
 
 
 ---

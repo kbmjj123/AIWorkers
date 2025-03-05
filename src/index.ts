@@ -55,6 +55,15 @@ export default {
 		}
 
 		try {
+			// 验证 API Key 是否存在
+			if (!env.DEEPSEEK_API_KEY) {
+				throw new Error(
+					'DEEPSEEK_API_KEY not found. ' +
+					'Please set it in .dev.vars for local development ' +
+					'or in Cloudflare Dashboard for production.'
+				);
+			}
+
 			// 解析请求体
 			const { message } = await request.json() as { message: string };
 			
@@ -116,9 +125,10 @@ export default {
 			});
 
 		} catch (error) {
-			// 错误处理
+			console.error('Error:', error); // 添加错误日志
 			return new Response(JSON.stringify({
-				error: error instanceof Error ? error.message : 'Internal Server Error'
+				error: error instanceof Error ? error.message : 'Internal Server Error',
+				tip: '如果是本地开发，请确保在 .dev.vars 文件中设置了 DEEPSEEK_API_KEY'
 			}), {
 				status: 500,
 				headers: {
