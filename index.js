@@ -1,5 +1,5 @@
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     // 限制请求来源（可选）
     // const allowedOrigin = 'https://charadesgenerator.xyz';
     // const origin = request.headers.get('Origin');
@@ -12,7 +12,7 @@ export default {
     if (url.pathname === '/api/generate') {
       try {
         const body = await request.json();
-        const apiKey = API_KEY; // 从环境变量获取 API Key
+        const apiKey = env.DEEPSEEK_KEY; // 从环境变量获取 API Key
         const deepSeekUrl = 'https://api.deepseek.com/v1/chat/completions';
 
         // 代理请求到 DeepSeek API
